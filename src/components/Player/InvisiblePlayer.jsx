@@ -108,6 +108,10 @@ const InvisiblePlayer = () => {
           {/* YouTube Video Viewport */}
           <div className="w-full h-full pt-6 bg-black">
             <ReactPlayer
+              key={cleanVideoId} // ✅ NEW: force a full remount whenever the track
+              // changes, instead of trying to swap `src` on the same mounted
+              // iframe instance. This is the standard fix for "next track
+              // doesn't load" with iframe-based providers like YouTube.
               ref={playerRef}
               src={`https://www.youtube.com/watch?v=${cleanVideoId}`} // ✅ CHANGED: v3 renamed
               // the `url` prop to `src`. Passing `url` on v3 is silently ignored,
@@ -118,7 +122,10 @@ const InvisiblePlayer = () => {
               controls={true}
               width="100%"       
               height="100%"
-              onEnded={handleSongEnd}
+              onEnded={() => {
+                console.log('[InvisiblePlayer] Track ended, emitting next-song');
+                handleSongEnd?.();
+              }}
               onError={(err) => {
                 console.error("YouTube Playback Error on track:", cleanVideoId, err);
                 if (handleSongEnd) handleSongEnd();
