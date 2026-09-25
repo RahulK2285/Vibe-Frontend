@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useVibe } from '../hooks/useVibe';
@@ -6,7 +6,6 @@ import SearchBar from '../components/Search/SearchBar';
 import { useSocket } from '../context/SocketContext'; 
 import QueueList from '../components/Queue/QueueList';
 import InvisiblePlayer from '../components/Player/InvisiblePlayer';
-import { Maximize2, Minimize2 } from 'lucide-react';
 
 const RoomPage = () => {
   const navigate = useNavigate();
@@ -19,9 +18,6 @@ const RoomPage = () => {
     return sessionStorage.getItem(`vibe_interacted_${roomCode}`) === 'true';
   });
 
-  // Mobile video expansion state
-  const [isPlayerExpanded, setIsPlayerExpanded] = useState(false);
-
   const { 
     castVote,
     queue, 
@@ -31,9 +27,7 @@ const RoomPage = () => {
     showVibers,
     setShowVibers,
     lastJoined,
-    handleSongEnd,
-    nowPlaying,
-    isPremier
+    nowPlaying
   } = useVibe();
 
   const handleLeaveRoom = () => {
@@ -67,7 +61,7 @@ const RoomPage = () => {
             </div>
             <button 
               onClick={startPlayback}
-              className="w-full rounded-2xl bg-purple-600 px-8 py-6 font-black text-2xl uppercase tracking-widest shadow-[0_0_40px_rgba(147,51,234,0.3)]"
+              className="w-full rounded-2xl bg-purple-600 hover:bg-purple-700 active:scale-95 transition-all px-8 py-6 font-black text-2xl uppercase tracking-widest shadow-[0_0_40px_rgba(147,51,234,0.3)]"
             >
               🚀 JOIN & SYNC
             </button>
@@ -106,8 +100,7 @@ const RoomPage = () => {
           </div>
         </header>
 
-        {/* ✅ Updated padding-bottom to prevent player overlap on mobile */}
-        <main className="flex-1 overflow-y-auto p-6 pb-48 max-w-6xl mx-auto w-full grid lg:grid-cols-2 gap-12">
+        <main className="flex-1 overflow-y-auto p-6 pb-28 max-w-6xl mx-auto w-full grid lg:grid-cols-2 gap-12">
           <section className="space-y-8">
             <h3 className="text-2xl font-bold tracking-tight">Add to Vibe</h3>
             <SearchBar roomCode={roomCode} />
@@ -126,27 +119,11 @@ const RoomPage = () => {
           </section>
         </main>
 
-        {/* ✅ Video Player Toggle UI for Mobile */}
-        {nowPlaying && (
-          <button 
-            onClick={() => setIsPlayerExpanded(!isPlayerExpanded)}
-            className="lg:hidden fixed bottom-24 right-6 z-[110] bg-purple-600 p-3 rounded-full shadow-lg"
-          >
-            {isPlayerExpanded ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
-          </button>
-        )}
-
-        {/* ✅ Dynamic Responsive Container */}
-        <div className={`
-          fixed transition-all duration-300 ease-in-out z-[100] border-2 border-purple-500/50 rounded-2xl overflow-hidden shadow-2xl
-          ${isPlayerExpanded 
-            ? 'bottom-24 right-4 w-[calc(100%-2rem)] h-56 lg:w-[320px] lg:h-[180px]' 
-            : 'bottom-24 right-4 w-16 h-16 lg:w-[320px] lg:h-[180px]'}
-        `}>
-          <InvisiblePlayer roomCode={roomCode} onEnd={handleSongEnd} />
-        </div>
+        {/* ✅ Directly render InvisiblePlayer (No extra wrapper div or toggle button needed) */}
+        <InvisiblePlayer roomCode={roomCode} />
       </div>
 
+      {/* Vibers Sidebar */}
       <aside className={`
         fixed lg:relative top-0 right-0 h-full bg-zinc-950 border-l border-white/5 
         flex flex-col z-[150] transition-transform duration-500 ease-in-out
