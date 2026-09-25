@@ -2,15 +2,15 @@ import React, { useState, useRef } from 'react';
 import ReactPlayer from 'react-player';
 import { motion } from 'framer-motion';
 import { Maximize2, Minimize2, GripHorizontal, Volume2, VolumeX } from 'lucide-react';
-import { useVibe } from "../../hooks/useVibe";
+import { useVibe } from '../../hooks/useVibe';
 
 const InvisiblePlayer = () => {
-  const { nowPlaying, handleSongEnd } = useVibe();
+  const { nowPlaying, handleSongEnd } = useVibe() || {};
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isMuted, setIsMuted] = useState(true); // Default muted to allow autoplay
+  const [isMuted, setIsMuted] = useState(true); // Start muted to bypass browser autoplay blocks
   const playerRef = useRef(null);
 
-  // Return nothing if track data or videoId is missing
+  // Safety check: Don't render if there's no track or valid YouTube ID
   if (!nowPlaying || !nowPlaying.videoId) return null;
 
   return (
@@ -24,17 +24,17 @@ const InvisiblePlayer = () => {
           alt={nowPlaying.title || "Now Playing"} 
         />
 
-        {/* Track Title */}
+        {/* Track Info */}
         <div className="flex-1 overflow-hidden">
           <p className="text-[10px] text-purple-400 font-bold uppercase tracking-widest">Now Playing</p>
           <p className="text-sm truncate font-medium text-white">{nowPlaying.title}</p>
         </div>        
 
-        {/* Unmute Button */}
+        {/* Unmute Action Prompt */}
         {isMuted && (
           <button
             onClick={() => setIsMuted(false)}
-            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white text-xs px-3 py-1.5 rounded-full font-semibold transition-all animate-bounce"
+            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 active:scale-95 text-white text-xs px-3 py-1.5 rounded-full font-semibold transition-all animate-bounce shadow-lg"
           >
             <VolumeX size={14} /> Unmute Sound
           </button>
@@ -51,7 +51,7 @@ const InvisiblePlayer = () => {
               : 'w-[280px] h-[157px]'}
           `}
         >
-          {/* Drag Handle Top Bar */}
+          {/* Drag Handle & Control Top Bar */}
           <div className="absolute top-0 left-0 right-0 h-6 bg-black/80 z-[120] cursor-grab active:cursor-grabbing flex items-center justify-between px-2 text-white">
             <GripHorizontal size={14} className="mx-auto text-purple-400" />
             
@@ -75,7 +75,7 @@ const InvisiblePlayer = () => {
             </button>
           </div>
 
-          {/* YouTube Viewport */}
+          {/* YouTube Video Viewport */}
           <div className="w-full h-full pt-6 bg-black">
             <ReactPlayer
               ref={playerRef}
@@ -88,15 +88,17 @@ const InvisiblePlayer = () => {
               height="100%"
               onEnded={handleSongEnd}
               onError={(err) => {
-                console.error("YouTube Playback Error:", err);
-                handleSongEnd();
+                console.error("YouTube Playback Error on track:", nowPlaying.videoId, err);
+                if (handleSongEnd) handleSongEnd();
               }}
               config={{ 
                 youtube: { 
                   playerVars: { 
                     autoplay: 1, 
                     mute: isMuted ? 1 : 0,
-                    modestbranding: 1
+                    modestbranding: 1,
+                    enablejsapi: 1,
+                    rel: 0
                   } 
                 } 
               }}
