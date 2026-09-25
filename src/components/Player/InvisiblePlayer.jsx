@@ -4,14 +4,13 @@ import { motion } from 'framer-motion';
 import { Maximize2, Minimize2, GripHorizontal, Volume2, VolumeX } from 'lucide-react';
 import { useVibe } from "../../hooks/useVibe";
 
-const InvisiblePlayer = ({ roomCode }) => {
+const InvisiblePlayer = () => {
   const { nowPlaying, handleSongEnd } = useVibe();
   const [isExpanded, setIsExpanded] = useState(false);
-  
-  // START MUTED to bypass browser Autoplay restrictions (NotAllowedError)
-  const [isMuted, setIsMuted] = useState(true); 
+  const [isMuted, setIsMuted] = useState(true); // Default muted to allow autoplay
   const playerRef = useRef(null);
 
+  // Return nothing if track data or videoId is missing
   if (!nowPlaying || !nowPlaying.videoId) return null;
 
   return (
@@ -28,16 +27,16 @@ const InvisiblePlayer = ({ roomCode }) => {
         {/* Track Title */}
         <div className="flex-1 overflow-hidden">
           <p className="text-[10px] text-purple-400 font-bold uppercase tracking-widest">Now Playing</p>
-          <p className="text-sm truncate font-medium">{nowPlaying.title}</p>
+          <p className="text-sm truncate font-medium text-white">{nowPlaying.title}</p>
         </div>        
 
-        {/* Unmute Action Button */}
+        {/* Unmute Button */}
         {isMuted && (
           <button
             onClick={() => setIsMuted(false)}
             className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white text-xs px-3 py-1.5 rounded-full font-semibold transition-all animate-bounce"
           >
-            <VolumeX size={14} /> Click to Unmute
+            <VolumeX size={14} /> Unmute Sound
           </button>
         )}
 
@@ -49,35 +48,35 @@ const InvisiblePlayer = ({ roomCode }) => {
             fixed bottom-20 right-4 z-[100] bg-black border-2 border-purple-500/80 rounded-xl overflow-hidden shadow-2xl transition-all duration-200
             ${isExpanded 
               ? 'w-[360px] h-[202px]' 
-              : 'w-20 h-20 md:w-[320px] md:h-[180px]'}
+              : 'w-[280px] h-[157px]'}
           `}
         >
           {/* Drag Handle Top Bar */}
-          <div className="absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-black/80 to-transparent z-[120] cursor-grab active:cursor-grabbing flex items-center justify-between px-2 text-white/70 hover:text-white">
-            <GripHorizontal size={14} className="mx-auto" />
+          <div className="absolute top-0 left-0 right-0 h-6 bg-black/80 z-[120] cursor-grab active:cursor-grabbing flex items-center justify-between px-2 text-white">
+            <GripHorizontal size={14} className="mx-auto text-purple-400" />
             
-            {/* Audio Toggle Button inside Floating Player */}
+            {/* Audio Toggle */}
             <button 
               onClick={() => setIsMuted(!isMuted)} 
-              className="mr-2 text-white"
+              className="mr-2 text-white hover:text-purple-400"
             >
-              {isMuted ? <VolumeX size={12} /> : <Volume2 size={12} />}
+              {isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
             </button>
 
-            {/* Mobile Expand Button */}
+            {/* Size Toggle */}
             <button 
               onClick={(e) => {
                 e.stopPropagation();
                 setIsExpanded(!isExpanded);
               }}
-              className="md:hidden bg-black/60 p-0.5 rounded text-white"
+              className="text-white hover:text-purple-400"
             >
-              {isExpanded ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+              {isExpanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
             </button>
           </div>
 
-          {/* YouTube Video Viewport */}
-          <div className="w-full h-full pt-2">
+          {/* YouTube Viewport */}
+          <div className="w-full h-full pt-6 bg-black">
             <ReactPlayer
               ref={playerRef}
               url={`https://www.youtube.com/watch?v=${nowPlaying.videoId}`}
@@ -97,8 +96,7 @@ const InvisiblePlayer = ({ roomCode }) => {
                   playerVars: { 
                     autoplay: 1, 
                     mute: isMuted ? 1 : 0,
-                    modestbranding: 1,
-                    rel: 0
+                    modestbranding: 1
                   } 
                 } 
               }}
