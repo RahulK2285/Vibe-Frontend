@@ -46,6 +46,11 @@ const RoomPage = () => {
     if (queue.length > 0 && !nowPlaying) {
       socket.emit('next-song', { roomCode });
     }
+    // ✅ NEW: this click is the browser-required user gesture. Broadcast it
+    // so InvisiblePlayer (mounted separately below) can unmute in response —
+    // previously hasInteracted never left this component, so the floating
+    // player had no way to know the user had joined.
+    window.dispatchEvent(new CustomEvent('vibe:join'));
   };
 
   return (
