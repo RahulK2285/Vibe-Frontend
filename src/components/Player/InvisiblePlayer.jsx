@@ -1,34 +1,25 @@
 import React, { useState, useRef, useEffect } from 'react';
-import ReactPlayer from 'react-player/youtube'; // ✅ CHANGED from 'react-player'.
-// The generic package picks a playback engine at runtime by pattern-matching
-// the url; if videoId ever arrives malformed it silently falls back to the
-// native file/HTML5 engine (your stuck 0:00 player). Scoping the import to
-// /youtube removes that fallback entirely — this build only knows how to
-// render the YouTube iframe embed.
-import { motion, useDragControls } from 'framer-motion'; // ✅ useDragControls added
+import ReactPlayer from 'react-player'; // ✅ Standard import fixes Vite Rollup build errors
+import { motion, useDragControls } from 'framer-motion';
 import { Maximize2, Minimize2, GripHorizontal, Volume2, VolumeX } from 'lucide-react';
 import { useVibe } from '../../hooks/useVibe';
-import { extractYouTubeId } from '../../utils/youtube'; // ✅ NEW
+import { extractYouTubeId } from '../../utils/youtube';
 
 const InvisiblePlayer = () => {
   const { nowPlaying, handleSongEnd } = useVibe() || {};
   const [isExpanded, setIsExpanded] = useState(false);
   const [isMuted, setIsMuted] = useState(true); // Start muted to bypass browser autoplay blocks
   const playerRef = useRef(null);
-  const dragControls = useDragControls(); // ✅ NEW: lets us start a drag only from the handle
+  const dragControls = useDragControls();
 
-  // ✅ NEW: react to the "JOIN & SYNC" gesture in RoomPage.jsx, which is the
-  // actual user interaction browsers require before allowing unmuted audio.
-  // RoomPage dispatches this event from its startPlayback() handler.
+  // Listen for user join event to auto-unmute
   useEffect(() => {
     const handleJoin = () => setIsMuted(false);
     window.addEventListener('vibe:join', handleJoin);
     return () => window.removeEventListener('vibe:join', handleJoin);
   }, []);
 
-  // ✅ Defense in depth: even though useVibe.js now normalizes videoId
-  // before it reaches nowPlaying, re-validate here so this component can
-  // never render a broken player regardless of what state it's handed.
+  // Clean and extract YouTube Video ID safely
   const cleanVideoId = nowPlaying ? extractYouTubeId(nowPlaying.videoId) : null;
 
   // Safety check: Don't render if there's no track or valid YouTube ID
@@ -65,9 +56,7 @@ const InvisiblePlayer = () => {
         <motion.div 
           drag
           dragMomentum={false}
-          dragListener={false} // ✅ CHANGED: drag only starts via dragControls.start()
-          // below, fired from the handle bar's onPointerDown — so dragging can
-          // never intercept clicks/touches on the iframe's own controls beneath it.
+          dragListener={false}
           dragControls={dragControls}
           className={`
             fixed bottom-20 right-4 z-[100] bg-black border-2 border-purple-500/80 rounded-xl overflow-hidden shadow-2xl transition-all duration-200
@@ -79,7 +68,7 @@ const InvisiblePlayer = () => {
           {/* Drag Handle & Control Top Bar */}
           <div
             className="absolute top-0 left-0 right-0 h-6 bg-black/80 z-[120] cursor-grab active:cursor-grabbing flex items-center justify-between px-2 text-white"
-            onPointerDown={(e) => dragControls.start(e)} // ✅ only this bar can start a drag
+            onPointerDown={(e) => dragControls.start(e)}
           >
             <GripHorizontal size={14} className="mx-auto text-purple-400" />
             
@@ -107,7 +96,7 @@ const InvisiblePlayer = () => {
           <div className="w-full h-full pt-6 bg-black">
             <ReactPlayer
               ref={playerRef}
-              url={`https://www.youtube.com/watch?v=${cleanVideoId}`} // ✅ guaranteed clean id
+              url={`https://www.youtube.com/watch?v=${cleanVideoId}`}
               playing={true}     
               muted={isMuted}      
               volume={1} 
@@ -120,14 +109,15 @@ const InvisiblePlayer = () => {
                 if (handleSongEnd) handleSongEnd();
               }}
               config={{ 
-                playerVars: {  // ✅ NOTE: no more nested "youtube" key — the
-                  // /youtube-scoped import takes playerVars directly.
-                  autoplay: 1, 
-                  mute: isMuted ? 1 : 0,
-                  modestbranding: 1,
-                  enablejsapi: 1,
-                  rel: 0
-                } 
+                youtube: {
+                  playerVars: { 
+                    autoplay: 1, 
+                    mute: isMuted ? 1 : 0,
+                    modestbranding: 1,
+                    enablejsapi: 1,
+                    rel: 0
+                  } 
+                }
               }}
             />
           </div>
