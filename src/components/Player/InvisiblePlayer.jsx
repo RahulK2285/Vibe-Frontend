@@ -1,14 +1,15 @@
 import React, { useState, useRef } from 'react';
 import ReactPlayer from 'react-player';
 import { motion } from 'framer-motion';
-import { Maximize2, Minimize2, GripHorizontal, Play, VolumeX } from 'lucide-react';
+import { Maximize2, Minimize2, GripHorizontal, Volume2, VolumeX } from 'lucide-react';
 import { useVibe } from "../../hooks/useVibe";
 
 const InvisiblePlayer = ({ roomCode }) => {
   const { nowPlaying, handleSongEnd } = useVibe();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [hasAutoplayBlocked, setHasAutoplayBlocked] = useState(false);
+  
+  // START MUTED to bypass browser Autoplay restrictions (NotAllowedError)
+  const [isMuted, setIsMuted] = useState(true); 
   const playerRef = useRef(null);
 
   if (!nowPlaying || !nowPlaying.videoId) return null;
@@ -30,16 +31,13 @@ const InvisiblePlayer = ({ roomCode }) => {
           <p className="text-sm truncate font-medium">{nowPlaying.title}</p>
         </div>        
 
-        {/* Unmute/Autoplay Fallback Button */}
-        {hasAutoplayBlocked && (
+        {/* Unmute Action Button */}
+        {isMuted && (
           <button
-            onClick={() => {
-              setIsMuted(false);
-              setHasAutoplayBlocked(false);
-            }}
-            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white text-xs px-3 py-1.5 rounded-full font-semibold transition-all animate-pulse"
+            onClick={() => setIsMuted(false)}
+            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white text-xs px-3 py-1.5 rounded-full font-semibold transition-all animate-bounce"
           >
-            <Play size={12} fill="white" /> Click to Play Audio
+            <VolumeX size={14} /> Click to Unmute
           </button>
         )}
 
@@ -47,7 +45,6 @@ const InvisiblePlayer = ({ roomCode }) => {
         <motion.div 
           drag
           dragMomentum={false}
-          dragConstraints={{ left: -window.innerWidth + 350, right: 0, top: -window.innerHeight + 250, bottom: 0 }}
           className={`
             fixed bottom-20 right-4 z-[100] bg-black border-2 border-purple-500/80 rounded-xl overflow-hidden shadow-2xl transition-all duration-200
             ${isExpanded 
@@ -58,18 +55,28 @@ const InvisiblePlayer = ({ roomCode }) => {
           {/* Drag Handle Top Bar */}
           <div className="absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-black/80 to-transparent z-[120] cursor-grab active:cursor-grabbing flex items-center justify-between px-2 text-white/70 hover:text-white">
             <GripHorizontal size={14} className="mx-auto" />
+            
+            {/* Audio Toggle Button inside Floating Player */}
+            <button 
+              onClick={() => setIsMuted(!isMuted)} 
+              className="mr-2 text-white"
+            >
+              {isMuted ? <VolumeX size={12} /> : <Volume2 size={12} />}
+            </button>
+
+            {/* Mobile Expand Button */}
             <button 
               onClick={(e) => {
                 e.stopPropagation();
                 setIsExpanded(!isExpanded);
               }}
-              className="md:hidden absolute right-1 bg-black/60 p-0.5 rounded text-white"
+              className="md:hidden bg-black/60 p-0.5 rounded text-white"
             >
               {isExpanded ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
             </button>
           </div>
 
-          {/* YouTube Player */}
+          {/* YouTube Video Viewport */}
           <div className="w-full h-full pt-2">
             <ReactPlayer
               ref={playerRef}
@@ -85,7 +92,6 @@ const InvisiblePlayer = ({ roomCode }) => {
                 console.error("YouTube Playback Error:", err);
                 handleSongEnd();
               }}
-              onStart={() => setHasAutoplayBlocked(false)}
               config={{ 
                 youtube: { 
                   playerVars: { 
