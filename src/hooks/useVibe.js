@@ -3,6 +3,7 @@ import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
+import { extractYouTubeId } from '../utils/youtube'; // ✅ NEW
 
 export const useVibe = () => {
   const { socket, queue, setQueue, nowPlaying, setNowPlaying } = useSocket();
@@ -16,12 +17,25 @@ export const useVibe = () => {
 
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+  // ✅ NEW: normalize whatever shape nowPlaying arrives in (REST or socket)
+  // before it ever reaches state. This is the one choke point every source
+  // of nowPlaying passes through, so InvisiblePlayer can trust videoId.
+  const normalizeNowPlaying = (payload) => {
+    if (!payload) return null;
+    const cleanId = extractYouTubeId(payload.videoId);
+    if (!cleanId) {
+      console.warn('[useVibe] Dropping nowPlaying with unparseable videoId:', payload.videoId, payload);
+      return null;
+    }
+    return { ...payload, videoId: cleanId };
+  };
+
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
         const res = await axios.get(`${API_BASE_URL}/api/rooms/${roomCode}`);
         setQueue(res.data.queue || []);
-        setNowPlaying(res.data.nowPlaying || null);
+        setNowPlaying(normalizeNowPlaying(res.data.nowPlaying)); // ✅ normalized
       } catch (err) { 
         console.error("Initial Data Load Error:", err); 
       }
@@ -35,7 +49,7 @@ export const useVibe = () => {
 
       socket.on('update-queue', (data) => {
         setQueue(data.queue || []);
-        setNowPlaying(data.nowPlaying || null); 
+        setNowPlaying(normalizeNowPlaying(data.nowPlaying)); // ✅ normalized
       });
 
       socket.on('update-vibers', (data) => {
@@ -64,10 +78,18 @@ export const useVibe = () => {
 
   const addSongToQueue = (song) => {
     if (socket && roomCode) {
+      // ✅ Normalize here too — this is almost certainly where a full URL
+      // (instead of a bare id) from your search results first enters the
+      // queue, so catching it here stops it from ever reaching playback.
+      const cleanId = extractYouTubeId(song.videoId);
+      if (!cleanId) {
+        console.error('[useVibe] Refusing to queue song with invalid videoId:', song);
+        return;
+      }
       socket.emit('add-song', { 
         roomCode, 
         songData: { 
-          videoId: song.videoId, 
+          videoId: cleanId, 
           title: song.title, 
           thumbnail: song.thumbnail,
           addedBy: user?.name || 'Guest',
